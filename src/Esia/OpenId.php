@@ -190,6 +190,12 @@ class OpenId
         return $token;
     }
 
+    public function setToken($token)
+    {
+        $this->config->setToken($token);
+    }
+    
+    
     /**
      * Fetch person info from current person
      *
@@ -269,6 +275,44 @@ class OpenId
 
         return $payload;
     }
+
+
+    public function getOrgInfo(): array
+    {
+        $url = $this->config->getPersonUrl() . '/roles';
+
+        $payload = $this->sendRequest(new Request('GET', $url));
+
+        if ($payload && $payload['size'] > 0) {
+            return $payload;
+        }
+
+        return $payload;
+    }
+
+    public function getOrgs(): array
+    {
+        $url = 'http://esia-portal1.test.gosuslugi.ru/rs/prns/' . $this->config->getOid() . '/orgs';
+
+        $payload = $this->sendRequest(new Request('GET', $url));
+
+        if ($payload && $payload['size'] > 0) {
+            return $payload;
+        }
+
+        return $payload;
+    }
+
+
+    public function getOrgInfoFull($orgOid): array
+    {
+        $url = 'http://esia-portal1.test.gosuslugi.ru/rs/orgs/' . $orgOid;
+
+        $payload = $this->sendRequest(new Request('GET', $url));
+
+        return $payload;
+    }
+
 
     /**
      * This method can iterate on each element
