@@ -1,13 +1,13 @@
 <?php
 /**
- * Project: esia2.rkn.gov.ru
- * File: CryptoSign.php
+ * Project: esia
+ * File: SignerCryptoPro.php
  * Created by: mn.rumynin
  * Date: 22.09.2021
  * Time: 22:38
  */
 
-namespace App\Module;
+namespace Esia\Signer;
 
 use Esia\Signer\Exceptions\SignFailException;
 use Esia\Signer\SignerInterface;
