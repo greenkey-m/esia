@@ -1,7 +1,7 @@
 {
-  "name": "fr05t1k/esia",
+  "name": "greenkey/esia",
   "license": "MIT",
-  "description": "OpenID ESIA authenticating",
+  "description": "OpenID ESIA authenticating using Cryptopro signer and access to org data",
   "keywords": [
     "esia",
     "openid",
