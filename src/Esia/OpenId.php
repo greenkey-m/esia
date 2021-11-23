@@ -181,6 +181,7 @@ class OpenId
 
         $token = $payload['access_token'];
         $this->config->setToken($token);
+        $this->config->setRefresh($payload['refresh_token']);
 
         # get object id from token
         $chunks = explode('.', $token);
@@ -194,7 +195,17 @@ class OpenId
     {
         $this->config->setToken($token);
     }
-    
+
+    /**
+     * Возвращает рефреш для обновления токена. Вероятно, механизм обновления токена нужно реализовать
+     * скрытно в данном классе, тогда этот метод потеряет значимость
+     *
+     * @return string
+     */
+    public function getRefresh(): string
+    {
+        return $this->config->getRefresh();
+    }
     
     /**
      * Fetch person info from current person
