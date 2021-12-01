@@ -48,6 +48,11 @@ class OpenId
      */
     private $config;
 
+    /**
+     * Массив для тестовых данных
+     */
+    private $test = [];
+
     public function __construct(Config $config, ClientInterface $client = null)
     {
         $this->config = $config;
@@ -59,6 +64,28 @@ class OpenId
             $config->getPrivateKeyPassword(),
             $config->getTmpPath()
         );
+    }
+
+    /**
+     * Установка тестовых данных (включается режим теста)
+     * В тестовом режиме подписание не производится и запросы в ЕСИА не отправляются, данные отдаются
+     * из массива test
+     *
+     * @param $testData
+     */
+    public function setTest($testData)
+    {
+        $this->test = $testData;
+    }
+
+    /**
+     * Получить значение тестового массива (в каком режиме находится объект)
+     *
+     * @return array
+     */
+    public function getTest(): array
+    {
+        return $this->test;
     }
 
     /**
@@ -143,6 +170,8 @@ class OpenId
      */
     public function getToken(string $code): string
     {
+        if ($this->test) return $this->test['token'] ?? '';
+
         $timestamp = $this->getTimeStamp();
         $state = $this->buildState();
 
@@ -204,6 +233,8 @@ class OpenId
      */
     public function getRefresh(): string
     {
+        if ($this->test) return $this->test['refresh'] ?? '';
+
         return $this->config->getRefresh();
     }
     
@@ -217,6 +248,8 @@ class OpenId
      */
     public function getPersonInfo(): array
     {
+        if ($this->test) return $this->test['person'] ?? [];
+
         $url = $this->config->getPersonUrl();
 
         return $this->sendRequest(new Request('GET', $url));
@@ -233,6 +266,8 @@ class OpenId
      */
     public function getContactInfo(): array
     {
+        if ($this->test) return $this->test['contacts'] ?? [];
+
         $url = $this->config->getPersonUrl() . '/ctts';
         $payload = $this->sendRequest(new Request('GET', $url));
 
@@ -255,6 +290,8 @@ class OpenId
      */
     public function getAddressInfo(): array
     {
+        if ($this->test) return $this->test['addresses'] ?? [];
+
         $url = $this->config->getPersonUrl() . '/addrs';
         $payload = $this->sendRequest(new Request('GET', $url));
 
@@ -276,6 +313,8 @@ class OpenId
      */
     public function getDocInfo(): array
     {
+        if ($this->test) return $this->test['docs'] ?? [];
+
         $url = $this->config->getPersonUrl() . '/docs';
 
         $payload = $this->sendRequest(new Request('GET', $url));
@@ -290,20 +329,9 @@ class OpenId
 
     public function getOrgInfo(): array
     {
+        if ($this->test) return $this->test['orgs'] ?? [];
+
         $url = $this->config->getPersonUrl() . '/roles';
-
-        $payload = $this->sendRequest(new Request('GET', $url));
-
-        if ($payload && $payload['size'] > 0) {
-            return $payload;
-        }
-
-        return $payload;
-    }
-
-    public function getOrgs(): array
-    {
-        $url = 'http://esia-portal1.test.gosuslugi.ru/rs/prns/' . $this->config->getOid() . '/orgs';
 
         $payload = $this->sendRequest(new Request('GET', $url));
 
@@ -317,6 +345,19 @@ class OpenId
 
     public function getOrgInfoFull($orgOid): array
     {
+        if ($this->test) {
+            foreach ($this->test['orgs']['elements'] as $key => $element) {
+                if ($element['oid'] == $orgOid) {
+                    // TODO: Уточнить возвращаемые данные
+                    return [
+                        'inn' => $element['inn'] ?? '',
+                        'kpp' => $element['kpp'] ?? '',
+                    ];
+                }
+            }
+            return [];
+        }
+
         $url = 'http://esia-portal1.test.gosuslugi.ru/rs/orgs/' . $orgOid;
 
         $payload = $this->sendRequest(new Request('GET', $url));
