@@ -358,7 +358,7 @@ class OpenId
             return [];
         }
 
-        $url = 'http://esia-portal1.test.gosuslugi.ru/rs/orgs/' . $orgOid;
+        $url = $this->config->getPortalUrl() . 'rs/orgs/' . $orgOid;
 
         $payload = $this->sendRequest(new Request('GET', $url));
 

@@ -22,7 +22,7 @@ class SignerCryptoPro implements SignerInterface
      */
     private $cryptoPath;
     /**
-     * Thumbprint (Hash) of personal cert, using to choose for sing
+     * Thumbprint (Hash) of personal cert, using to choose for sign
      *
      * @var string
      */
@@ -74,6 +74,8 @@ class SignerCryptoPro implements SignerInterface
         $output = null;
         $retv = null;
         $result = exec($cmd, $output, $retv);
+        // TODO: сделать ведение лога, записывать результат выполнения всех операций (try-catch и возврат ошибок)
+        file_put_contents($this->tmpPath . "/" . $messageFile . ".res", $output);
         $signature = file_get_contents($this->tmpPath . "/" . $messageFile . '.sgn');
         $encoded = base64_encode($signature);
         unlink($this->tmpPath . "/" . $messageFile);
