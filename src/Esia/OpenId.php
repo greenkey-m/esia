@@ -237,7 +237,7 @@ class OpenId
 
         return $this->config->getRefresh();
     }
-    
+
     /**
      * Fetch person info from current person
      *
@@ -343,6 +343,13 @@ class OpenId
     }
 
 
+    /**
+     * Получение общих данных по организации (ИНН, КПП, тип, название и т.д.)
+     *
+     * @param $orgOid
+     * @return array
+     * @throws AbstractEsiaException
+     */
     public function getOrgInfoFull($orgOid): array
     {
         if ($this->test) {
@@ -365,6 +372,72 @@ class OpenId
         return $payload;
     }
 
+    /**
+     * Получение коллекции контактов по организации, в виде списка ссылок на ресурс
+     *
+     * @param $orgOid
+     * @return array
+     * @throws AbstractEsiaException
+     */
+    public function getOrgInfoCtts($orgOid): array
+    {
+        $url = $this->config->getPortalUrl() . 'rs/orgs/' . $orgOid . '/ctts?embed=(elements)';
+        $payload = $this->sendRequest(new Request('GET', $url));
+        if ($payload['size'] > 0) {
+//            $payload['data'] = [];
+//            foreach ($payload['elements'] as $urlCtt) {
+//                $ctt = $this->sendRequest(new Request('GET', $urlCtt));
+//                $ctt['url'] = $urlCtt;
+//                $payload['data'][] = $ctt;
+//            }
+        }
+        return $payload;
+    }
+
+    /**
+     * Получение коллекции адресов по организации, в виде списка ссылок на ресурс
+     *
+     * @param $orgOid
+     * @return array
+     * @throws AbstractEsiaException
+     */
+    public function getOrgInfoAddrs($orgOid)
+    {
+        $url = $this->config->getPortalUrl() . 'rs/orgs/' . $orgOid . '/addrs?embed=(elements)';
+        $payload = $this->sendRequest(new Request('GET', $url));
+        if ($payload['size'] > 0) {
+//            $payload['data'] = [];
+//            foreach ($payload['elements'] as $urlCtt) {
+//                $ctt = $this->sendRequest(new Request('GET', $urlCtt));
+//                $ctt['url'] = $urlCtt;
+//                $payload['data'][] = $ctt;
+//            }
+        }
+        return $payload;
+    }
+
+    /**
+     *
+     * embed=(elements.address,elements.contact)
+     *
+     * @param $orgOid
+     * @return array
+     * @throws AbstractEsiaException
+     */
+    public function getOrgInfoEmps($orgOid)
+    {
+        $url = $this->config->getPortalUrl() . 'rs/orgs/' . $orgOid . '/emps?embed=(elements.person)';
+        $payload = $this->sendRequest(new Request('GET', $url));
+        if ($payload['size'] > 0) {
+//            $payload['data'] = [];
+//            foreach ($payload['elements'] as $urlCtt) {
+//                $ctt = $this->sendRequest(new Request('GET', $urlCtt));
+//                $ctt['url'] = $urlCtt;
+//                $payload['data'][] = $ctt;
+//            }
+        }
+        return $payload;
+    }
 
     /**
      * This method can iterate on each element
