@@ -3,6 +3,7 @@
 namespace Esia;
 
 use Esia\Exceptions\AbstractEsiaException;
+use Esia\Exceptions\ExpiredTokenException;
 use Esia\Exceptions\ForbiddenException;
 use Esia\Exceptions\RequestFailException;
 use Esia\Http\GuzzleHttpClient;
@@ -220,9 +221,68 @@ class OpenId
         return $token;
     }
 
+    public function refreshToken()
+    {
+        // TODO: можно реализовать процесс генерации токена
+        if ($this->test) return $this->test['token'] ?? '';
+
+        $timestamp = $this->getTimeStamp();
+        $state = $this->buildState();
+
+        $clientSecret = $this->signer->sign(
+            $this->config->getScopeString()
+            . $timestamp
+            . $this->config->getClientId()
+            . $state
+        );
+
+        $body = [
+            'client_id' => $this->config->getClientId(),
+            'code' => $this->getRefresh(),
+            'grant_type' => 'refresh_token',
+            'client_secret' => $clientSecret,
+            'state' => $state,
+            'redirect_uri' => $this->config->getRedirectUrl(),
+            'scope' => $this->config->getScopeString(),
+            'timestamp' => $timestamp,
+            'token_type' => 'Bearer',
+            'refresh_token' => $this->getRefresh(),
+        ];
+
+        $payload = $this->sendRequest(
+            new Request(
+                'POST',
+                $this->config->getTokenUrl(),
+                [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+                http_build_query($body)
+            )
+        );
+
+        $this->logger->debug('Payload refresh: ', $payload);
+
+        $token = $payload['access_token'];
+        $this->config->setToken($token);
+        $this->config->setRefresh($payload['refresh_token']);
+
+        # get object id from token
+        // $chunks = explode('.', $token);
+        // $payload = json_decode($this->base64UrlSafeDecode($chunks[1]), true);
+        // $this->config->setOid($payload['urn:esia:sbj_id']);
+
+        return $token;
+
+    }
+
     public function setToken($token)
     {
         $this->config->setToken($token);
+    }
+
+    public function setRefresh($refresh)
+    {
+        $this->config->setRefresh($refresh);
     }
 
     /**
@@ -252,7 +312,8 @@ class OpenId
 
         $url = $this->config->getPersonUrl();
 
-        return $this->sendRequest(new Request('GET', $url));
+        $result = $this->sendRequest(new Request('GET', $url));
+        return $result;
     }
 
     /**
@@ -495,7 +556,12 @@ class OpenId
                 throw new ForbiddenException('Request is forbidden', 0, $e);
             }
 
-            throw new RequestFailException('Request is failed', 0, $e);
+            //$s = $s . $e->getMessage() . '------' . $e->getCode() . $prev->getMessage() . $prev->getCode();
+            if ($e->getCode() == 401)
+                throw new ExpiredTokenException('Token possible expired and need to refresh', 0, $e);
+            else
+                throw new RequestFailException('Request is failed', 0, $e);
+
         } catch (RuntimeException $e) {
             $this->logger->error('Cannot read body', ['exception' => $e]);
             throw new RequestFailException('Cannot read body', 0, $e);
