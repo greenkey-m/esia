@@ -112,10 +112,10 @@ class OpenId
      *     <a href="<?=$esia->buildUrl()?>">Login</a>
      * ```
      *
-     * @return string|false
+     * @return string
      * @throws SignFailException
      */
-    public function buildUrl()
+    public function buildUrl(): string
     {
         $timestamp = $this->getTimeStamp();
         $state = $this->buildState();
@@ -293,6 +293,7 @@ class OpenId
      * про обновление токена наверх
      *
      * @return bool
+     * @throws Exception
      */
     public function expired()
     {
