@@ -164,7 +164,7 @@ class OpenId
     }
 
     /**
-     * Method collect a token with given code
+     * Method collect a token and refresh with given code
      *
      * @throws SignFailException
      * @throws AbstractEsiaException
@@ -297,6 +297,7 @@ class OpenId
      */
     public function expired()
     {
+        if ($this->test) return true;
         if (!$this->config->getToken())
             throw new Exception('Token not exists');
         # get object id from token
