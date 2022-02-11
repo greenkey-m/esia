@@ -112,10 +112,10 @@ class OpenId
      *     <a href="<?=$esia->buildUrl()?>">Login</a>
      * ```
      *
-     * @return string|false
+     * @return string
      * @throws SignFailException
      */
-    public function buildUrl()
+    public function buildUrl(): string
     {
         $timestamp = $this->getTimeStamp();
         $state = $this->buildState();
@@ -283,6 +283,31 @@ class OpenId
     public function setRefresh($refresh)
     {
         $this->config->setRefresh($refresh);
+    }
+
+    /**
+     * Проверяет, истек ли срок годности токена
+     * Механизм принятия решения об обновлении вынесен наверх, т.к. объекты эксплуатирующие класс
+     * сохраняют токены (т.е. они должны знать, что он обновился).
+     * Возможно, стоит инкапсулировать обновление в sendRequest, но нужно будет как-то оповещать?
+     * про обновление токена наверх
+     *
+     * @return bool
+     * @throws Exception
+     */
+    public function expired()
+    {
+        if (!$this->config->getToken())
+            throw new Exception('Token not exists');
+        # get object id from token
+        $chunks = explode('.', $this->config->getToken());
+        if (!is_array($chunks) or sizeof($chunks) !== 3)
+            throw new Exception('Wrong token format');
+        $payload = json_decode($this->base64UrlSafeDecode($chunks[1]), true);
+        if (!$payload || !array_key_exists('exp', $payload))
+            throw new Exception('Wrong token payload');
+        $exp = $payload['exp'];
+        return ($exp - time()) < 120;
     }
 
     /**
