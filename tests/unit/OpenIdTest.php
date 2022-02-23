@@ -57,7 +57,7 @@ class OpenIdTest extends Unit
         $oidBase64 = base64_encode('{ "urn:esia:sbj_id" : ' . $oid . '}');
 
         $client = $this->buildClientWithResponses([
-            new Response(200, [], '{ "access_token": "test.' . $oidBase64 . '.test"}'),
+            new Response(200, [], '{ "access_token": "test.' . $oidBase64 . '.test", "refresh_token": "testrefresh"}'),
         ]);
         $openId = new OpenId($config, $client);
 

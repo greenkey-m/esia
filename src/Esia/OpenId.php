@@ -211,7 +211,7 @@ class OpenId
 
         $token = $payload['access_token'];
         $this->config->setToken($token);
-        $this->config->setRefresh($payload['refresh_token']);
+        $this->config->setRefresh($payload['refresh_token'] ?? '');
 
         # get object id from token
         $chunks = explode('.', $token);

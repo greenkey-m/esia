@@ -10,6 +10,7 @@ use Esia\Signer\Exceptions\NoSuchKeyFileException;
 use Esia\Signer\Exceptions\NoSuchTmpDirException;
 use Esia\Signer\Exceptions\SignFailException;
 use Esia\Signer\SignerPKCS7;
+use Exception;
 
 /**
  * Class SignerPKCS7Test
@@ -110,6 +111,7 @@ class SignerPKCS7Test extends Unit
             codecept_log_dir()
         );
 
+        error_reporting(E_ERROR); // Exclude warnings: openssl_x509_read(): supplied parameter cannot be coerced into X509 certificate
         $this->expectException(CannotReadCertificateException::class);
         $signer->sign('test');
     }

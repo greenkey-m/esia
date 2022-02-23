@@ -49,7 +49,7 @@ class OpenIdCliOpensslTest extends OpenIdTest
         $oidBase64 = base64_encode('{ "urn:esia:sbj_id" : ' . $oid . '}');
 
         $client = $this->buildClientWithResponses([
-            new Response(200, [], '{ "access_token": "test.' . $oidBase64 . '.test"}'),
+            new Response(200, [], '{ "access_token": "test.' . $oidBase64 . '.test", "refresh_token": "refreshtest"}'),
         ]);
         $openId = new OpenId($config, $client);
         $openId->setSigner(new CliSignerPKCS7(
