@@ -14,6 +14,7 @@ use Esia\Signer\SignerPKCS7;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use InvalidArgumentException;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -57,6 +58,14 @@ class OpenId
     public function __construct(Config $config, ClientInterface $client = null)
     {
         $this->config = $config;
+        /* TODO: вероятно стоит добавить в параметры проекта
+         * !!!!!!!!!!!!!! Временная корректировка отключает проверку цепочки сертификатов
+         * $this->client = $client ?? new GuzzleHttpClient(new Client([
+         *    'verify' => false
+         * ]));
+         *
+         * Для отключения проверки заменить строку ниже
+         */
         $this->client = $client ?? new GuzzleHttpClient(new Client());
         $this->logger = new NullLogger();
         $this->signer = new SignerPKCS7(
@@ -221,6 +230,66 @@ class OpenId
         return $token;
     }
 
+    /**
+     * Method collect a acces token for system-client
+     *
+     * @throws SignFailException
+     * @throws AbstractEsiaException
+     */
+    public function getSystemToken(): string
+    {
+        //if ($this->test) return $this->test['token'] ?? '';
+
+        $timestamp = $this->getTimeStamp();
+        $state = $this->buildState();
+
+        // TODO: забирать их из параметров
+        $clientSecret = $this->signer->sign(
+            implode(' ', ['pow_reg', 'pow_reg_inf', 'pow_reg_search']) //$this->config->getScopeString(),
+            . $timestamp
+            . $this->config->getClientId()
+            . $state
+        );
+
+        $body = [
+            'client_id' => $this->config->getClientId(),
+            'response_type' => 'token',
+            'grant_type' => 'client_credentials',
+            'client_secret' => $clientSecret,
+            'state' => $state,
+            'scope' => implode(' ', ['pow_reg', 'pow_reg_inf', 'pow_reg_search']), //$this->config->getScopeString(),
+            'timestamp' => $timestamp,
+            'token_type' => 'Bearer',
+        ];
+
+        $payload = $this->sendRequest(
+            new Request(
+                'POST',
+                $this->config->getTokenUrl(),
+                [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+                http_build_query($body)
+            )
+        );
+
+        $this->logger->debug('Payload: ', $payload);
+
+        $token = $payload['access_token'];
+        $this->config->setToken($token);
+        $this->config->setRefresh(''); // его нет для системного доступа
+
+        # get object id from token
+        // $chunks = explode('.', $token);
+        // $payload = json_decode($this->base64UrlSafeDecode($chunks[1]), true);
+        $this->config->setOid('');
+
+        //file_put_contents("../emchd.log", $payload . " ### " . $token);
+
+        return $token;
+    }
+
+
     public function refreshToken()
     {
         // TODO: можно реализовать процесс генерации токена
@@ -339,6 +408,17 @@ class OpenId
         $url = $this->config->getPersonUrl();
 
         $result = $this->sendRequest(new Request('GET', $url));
+        return $result;
+    }
+
+    public function getMchdInfo(string $guid): array
+    {
+
+        //$url = "https://esia-portal1.test.gosuslugi.ru/poa-registry/api/public/v1/poa/62ac7e55-f42d-4a88-8204-d07e3357e479/";
+        $url = $this->config->getEmchdUrl($guid);
+
+        $result = $this->sendRequest(new Request('GET', $url));
+        $result['url'] = $url;
         return $result;
     }
 
@@ -585,8 +665,19 @@ class OpenId
             //$s = $s . $e->getMessage() . '------' . $e->getCode() . $prev->getMessage() . $prev->getCode();
             if ($e->getCode() == 401)
                 throw new ExpiredTokenException('Token possible expired and need to refresh', 0, $e);
-            else
-                throw new RequestFailException('Request is failed', 0, $e);
+            else {
+                // TODO: организовать иерархию необходимых исключений в ответы
+                // throw new RequestFailException('Service temporary unavailiable: ' . $e->getMessage(), $e->getCode(), $e);
+                // Быстрый просмотр ошибки из ЕСИА
+                $b = "*";
+                if ($prev instanceof RequestException) {
+                    $b = $prev->getResponse()->getBody()->getContents();
+                    $d = json_decode($b, true);
+                    // Вернем ошибку из ЕСИА
+                    return $d;
+                }
+                throw new RequestFailException('Service temporary unavailiable ' . $b, 0, $e);
+            }
 
         } catch (RuntimeException $e) {
             $this->logger->error('Cannot read body', ['exception' => $e]);

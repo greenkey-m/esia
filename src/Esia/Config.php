@@ -15,6 +15,7 @@ class Config
     private $tokenUrlPath = 'aas/oauth2/te';
     private $codeUrlPath = 'aas/oauth2/ac';
     private $personUrlPath = 'rs/prns';
+    private $emchdUrlPath = 'poa-registry/api/public/v1/poa';
     private $logoutUrlPath = 'idp/ext/Logout';
     private $privateKeyPassword = '';
 
@@ -194,6 +195,15 @@ class Config
             throw new InvalidConfigurationException('Please provide oid');
         }
         return $this->portalUrl . $this->personUrlPath . '/' . $this->oid;
+    }
+
+    /**
+     * @param string $guid
+     * @return string
+     */
+    public function getEmchdUrl(string $guid): string
+    {
+        return $this->portalUrl . $this->emchdUrlPath . '/' . $guid;
     }
 
     /**
