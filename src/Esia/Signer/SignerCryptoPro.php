@@ -95,12 +95,13 @@ class SignerCryptoPro implements SignerInterface
 
         // Write the sign log process to a file
         $resultPath = $this->tmpPath . "/" . $messageFile . ".res";
-        if (!file_put_contents($resultPath, $output)) {
+        $listing = $cmd . "\n" . implode("\n", $output);
+        if (!file_put_contents($resultPath, $listing)) {
             throw new CryptoProResultException('Cannot write sign log process to ' . $resultPath);
         }
 
         // Read the signature from a file
-        $signaturePath = $this->tmpPath . "/" . $messageFile . '.sgn';
+        $signaturePath = $this->tmpPath . "/" . $messageFile . '.msg.sgn';
         $signature = file_get_contents($signaturePath);
         if (!$signature) {
             throw new CryptoProSignException('Cannot read signature from ' . $signaturePath);
