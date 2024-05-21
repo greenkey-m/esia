@@ -231,7 +231,7 @@ class OpenId
     }
 
     /**
-     * Method collect a acces token for system-client
+     * Method collect a access token for system-client
      *
      * @throws SignFailException
      * @throws AbstractEsiaException

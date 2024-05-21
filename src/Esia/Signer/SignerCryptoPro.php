@@ -9,34 +9,34 @@
 
 namespace Esia\Signer;
 
-use Esia\Signer\Exceptions\SignFailException;
-use Esia\Signer\SignerInterface;
+use Esia\Signer\Exceptions\CryptoProMessageException;
+use Esia\Signer\Exceptions\CryptoProExecException;
+use Esia\Signer\Exceptions\CryptoProSignException;
+use Esia\Signer\Exceptions\CryptoProResultException;
 
 class SignerCryptoPro implements SignerInterface
 {
 
     /**
      * Path to CryptoPro
-     *
-     * @var string
      */
-    private $cryptoPath;
+    private string $cryptoPath;
     /**
      * Thumbprint (Hash) of personal cert, using to choose for sign
-     *
-     * @var string
      */
     private $thumbprint;
     /**
      * Pin for access to personal cert
-     *
-     * @var string
      */
-    private $pin;
+    private string $pin;
     /**
-     * @var string
+     * Path to temporary files
      */
-    private $tmpPath;
+    private string $tmpPath;
+    /**
+     * TODO: Keep temporary files
+     */
+    private bool $keepTemp;
 
     public function __construct(string $cryptoPath, string $tmpPath, string $thumbprint, string $pin)
     {
@@ -44,6 +44,7 @@ class SignerCryptoPro implements SignerInterface
         $this->tmpPath = $tmpPath;
         $this->thumbprint = $thumbprint;
         $this->pin = $pin;
+        $this->keepTemp = false;
     }
 
     /**
@@ -55,31 +56,72 @@ class SignerCryptoPro implements SignerInterface
     }
 
     /**
-     * @inheritDoc
+     * Sign the given message using CryptoPro.
+     *
+     * @param string $message The message to sign.
+     * @return string The base64 encoded signature.
+     * @throws CryptoProMessageException If the message cannot be written to a file.
+     * @throws CryptoProExecException If there is an error executing the cryptcp command.
+     * @throws CryptoProResultException If the sign log process cannot be written to a file.
+     * @throws CryptoProSignException If the signature cannot be read from a file.
      */
     public function sign(string $message): string
     {
-        // TODO: Implement sign() method.
+        // Generate a random unique string for the message file
         $messageFile = $this->getRandomString();
-        file_put_contents($this->tmpPath . "/" . $messageFile, $message);
-        //$cmd = $this->cryptoPath . '/cryptcp -signf -der -strict -cert -detached -dn root -thumbprint "'.$this->thumbprint.'" -pin "1234567890" "message"';
+
+        // Write the message to a file
+        $messagePath = $this->tmpPath . "/" . $messageFile . '.msg';
+        if (!file_put_contents($messagePath, $message)) {
+            throw new CryptoProMessageException('Cannot write message to ' . $messagePath);
+        }
+
+        // Construct the cryptcp command
         $cmd = '%s/cryptcp -signf -der -strict -cert -detached -dir "%s" -dn root -thumbprint "%s" -pin "%s" "%s"';
         $cmd = sprintf($cmd,
             $this->cryptoPath,
             $this->tmpPath,
             $this->thumbprint,
             $this->pin,
-            $this->tmpPath . "/" . $messageFile
+            $messagePath
         );
+
+        // Execute the cryptcp command and get the output
         $output = null;
         $retv = null;
-        $result = exec($cmd, $output, $retv);
-        // TODO: сделать ведение лога, записывать результат выполнения всех операций (try-catch и возврат ошибок)
-        file_put_contents($this->tmpPath . "/" . $messageFile . ".res", $output);
-        $signature = file_get_contents($this->tmpPath . "/" . $messageFile . '.sgn');
+        if (!exec($cmd, $output, $retv)) {
+            throw new CryptoProExecException('Error executing ' . $cmd);
+        }
+
+        // Write the sign log process to a file
+        $resultPath = $this->tmpPath . "/" . $messageFile . ".res";
+        if (!file_put_contents($resultPath, $output)) {
+            throw new CryptoProResultException('Cannot write sign log process to ' . $resultPath);
+        }
+
+        // Read the signature from a file
+        $signaturePath = $this->tmpPath . "/" . $messageFile . '.sgn';
+        $signature = file_get_contents($signaturePath);
+        if (!$signature) {
+            throw new CryptoProSignException('Cannot read signature from ' . $signaturePath);
+        }
+
+        // Base64 encode the signature
         $encoded = base64_encode($signature);
-        unlink($this->tmpPath . "/" . $messageFile);
-        unlink($this->tmpPath . "/" . $messageFile . ".sgn");
+
+        // Remove temporary files if not kept
+        if (!$this->keepTemp) {
+            $tempFiles = [
+                $messagePath,
+                $resultPath,
+                $signaturePath,
+            ];
+            foreach ($tempFiles as $file) {
+                unlink($file);
+            }
+        }
+
+        // Replace special characters in the base64 encoded signature
         return str_replace(array('+', '/', '='), array('-', '_', ''), $encoded);
     }
 }
