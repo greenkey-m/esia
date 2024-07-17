@@ -606,6 +606,26 @@ class OpenId
         return $payload;
     }
 
+    public function searchMchd(array $searchData): array
+    {
+
+        //$url = "https://esia.gosuslugi.ru/poa-registry/api/public/v1/poa/62ac7e55-f42d-4a88-8204-d07e3357e479";
+        //$url = $this->config->getEmchdUrl($guid);
+        $url = "https://esia.gosuslugi.ru/poa-registry/api/public/v1/poa/search?";
+
+        $params = [];
+        foreach ($searchData as $key => $value) {
+            if ($value) {
+                $params[$key] = $value;
+            }
+        }
+
+        $result = $this->sendRequest(new Request('GET', $url . http_build_query($params)));
+        $result['url'] = $url;
+        $result['params'] = $params;
+        return $result;
+    }
+
     /**
      * This method can iterate on each element
      * and fetch entities from esia by url
